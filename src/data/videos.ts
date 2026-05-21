@@ -9,7 +9,7 @@ export const videos: Video[] = [
     author: "@big_buck_bunny",
     description:
       "Big Buck Bunny - Phim hoạt hình mã nguồn mở 🐰 #animation #funny #cute",
-    likes: 124_200,
+    likes: 124,
     comments: 3_400,
     shares: 8_900,
   },
@@ -19,7 +19,7 @@ export const videos: Video[] = [
     author: "@friday_vibes",
     description:
       "Friday vibes đang cảm nhận khác biệt ✨ #friday #mood #weekend #chill",
-    likes: 87_500,
+    likes: 87,
     comments: 2_100,
     shares: 4_500,
   },
@@ -29,7 +29,17 @@ export const videos: Video[] = [
     author: "@sintel_official",
     description:
       "Sintel - Official Trailer 🎬 Open Movie by Blender Foundation #blender #animation",
-    likes: 231_000,
+    likes: 231,
+    comments: 9_800,
+    shares: 15_000,
+  },
+  {
+    id: "4",
+    url: "https://ik.imagekit.io/ikmedia/videodemo/test-video.mp4?tr=w-400,h-640",
+    author: "@sintel_official",
+    description:
+      "Sintel - Official Trailer 🎬 Open Movie by Blender Foundation #blender #animation",
+    likes: 100,
     comments: 9_800,
     shares: 15_000,
   },
