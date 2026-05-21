@@ -32,19 +32,21 @@ export default function VideoFeed() {
    *   - Play video mới
    *   - Cập nhật activeIndex
    */
+  const activeIndexRef = useRef<number>(0);
+
   const handleIntersect = useCallback(
     (index: number) => {
-      // Dùng functional ref để lấy activeIndex mới nhất
-      // mà không cần đưa activeIndex vào dependency array
-      setActiveIndex((prevIndex) => {
-        if (prevIndex !== index) {
-          // Pause video đang chạy
-          cardRefs.current[prevIndex]?.pause();
-        }
+      const prevIndex = activeIndexRef.current;
+      if (prevIndex !== index) {
+        // Pause video đang chạy
+        cardRefs.current[prevIndex]?.pause();
+        
         // Play video mới vào viewport
         cardRefs.current[index]?.play();
-        return index;
-      });
+        
+        activeIndexRef.current = index;
+        setActiveIndex(index);
+      }
     },
     [] // Không phụ thuộc vào activeIndex → tránh recreate observer
   );

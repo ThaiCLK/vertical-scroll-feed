@@ -24,21 +24,16 @@ export function useIntersectionObserver({
   threshold = 0.7,
   onIntersect,
 }: UseIntersectionObserverOptions) {
-  // Lưu tham chiếu đến observer instance — không cần re-render khi thay đổi
   const observerRef = useRef<IntersectionObserver | null>(null);
-
-  // Map element → index để tra cứu nhanh O(1) khi callback fires
   const elementMapRef = useRef<Map<Element, number>>(new Map());
-
-  // Giữ callback mới nhất mà không cần recreate observer
   const onIntersectRef = useRef(onIntersect);
+
   useEffect(() => {
     onIntersectRef.current = onIntersect;
   }, [onIntersect]);
 
   useEffect(() => {
-    // Khởi tạo observer một lần duy nhất
-    observerRef.current = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
@@ -50,38 +45,44 @@ export function useIntersectionObserver({
         });
       },
       {
-        // root: null → dùng viewport của trình duyệt làm vùng quan sát
         root: null,
         rootMargin: "0px",
         threshold,
       }
     );
+    observerRef.current = observer;
 
-    // Cleanup: ngắt kết nối observer khi component unmount
+    // Khi useEffect chạy, các element có thể đã được lưu vào map
+    // (vì ref callback chạy trước useEffect) -> cần observe chúng
+    elementMapRef.current.forEach((_, el) => {
+      observer.observe(el);
+    });
+
     return () => {
-      observerRef.current?.disconnect();
+      observer.disconnect();
+      observerRef.current = null;
     };
   }, [threshold]);
 
-  /**
-   * ref-setter callback — truyền vào prop `ref` của mỗi VideoCard wrapper.
-   * Khi element mount:   đăng ký vào observer + lưu vào map.
-   * Khi element unmount: hủy đăng ký + xóa khỏi map.
-   */
   const setRef = (element: HTMLDivElement | null, index: number) => {
-    const observer = observerRef.current;
-    if (!observer) return;
-
     if (element) {
-      observer.observe(element);
       elementMapRef.current.set(element, index);
+      if (observerRef.current) {
+        observerRef.current.observe(element);
+      }
     } else {
-      // element = null nghĩa là component đã unmount
-      elementMapRef.current.forEach((_, el) => {
-        observer.unobserve(el);
+      // Lọc và xoá element ứng với index này khi nó bị unmount
+      let elToRemove: Element | null = null;
+      elementMapRef.current.forEach((idx, el) => {
+        if (idx === index) elToRemove = el;
       });
+      if (elToRemove) {
+        observerRef.current?.unobserve(elToRemove);
+        elementMapRef.current.delete(elToRemove);
+      }
     }
   };
 
   return { setRef };
 }
+
