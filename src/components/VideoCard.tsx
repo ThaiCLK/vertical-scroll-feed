@@ -68,12 +68,10 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
 
     /** Nút Tim: toggle like + tăng/giảm count */
     const handleLike = useCallback(() => {
-      setIsLiked((prev) => {
-        const nextLiked = !prev;
-        setLikeCount((count) => (nextLiked ? count + 1 : count - 1));
-        return nextLiked;
-      });
-    }, []);
+      const nextLiked = !isLiked;
+      setIsLiked(nextLiked);
+      setLikeCount((count) => (nextLiked ? count + 1 : count - 1));
+    }, [isLiked]);
 
     /** Nút tắt/bật âm thanh — stopPropagation để không trigger click video */
     const handleMuteToggle = useCallback(
