@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VideoFeed — Short Video Scrolling App
 
-## Getting Started
+Ứng dụng xem video cuộn dọc (tương tự TikTok/Reels) được xây dựng với
+**Next.js 14 (App Router)**, **TypeScript** và **Tailwind CSS**.
 
-First, run the development server:
+---
+
+## Tính năng
+
+- Giao diện full-screen trên Mobile, tỷ lệ 9:16 căn giữa trên PC
+- Cuộn mượt từng video bằng CSS Scroll Snap
+- Auto-play/pause thông minh theo viewport (Intersection Observer API)
+- Click vào video để Play/Pause với hiệu ứng icon nhất thời
+- Nút "Tim" đổi màu đỏ và cập nhật số lượng realtime
+- Navigation responsive: Bottom Bar (Mobile) / Left Sidebar (PC)
+- Tắt/bật âm thanh từng video
+
+---
+
+## Hướng dẫn chạy
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Mở http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Giải thích kỹ thuật: Auto-play/Pause bằng Intersection Observer
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Vấn đề cần giải quyết
 
-## Learn More
+Trong một video feed kiểu TikTok, ứng dụng cần tự động **phát video đang
+hiển thị** và **tạm dừng video đã cuộn qua** — mà không cần người dùng
+tương tác thủ công. Sử dụng sự kiện `scroll` thông thường để đo vị trí
+từng video sẽ rất tốn kém về hiệu suất vì nó fires liên tục trên main thread.
 
-To learn more about Next.js, take a look at the following resources:
+### Giải pháp: Intersection Observer API
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`IntersectionObserver` là một Web API cho phép theo dõi **tỷ lệ hiển thị**
+của một element trong viewport **hoàn toàn bất đồng bộ** — không chặn
+main thread, không cần lắng nghe sự kiện scroll.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Luồng hoạt động
 
-## Deploy on Vercel
+```
+Người dùng cuộn xuống
+│
+▼
+IntersectionObserver phát hiện video[index] chiếm ≥ 70% viewport
+│
+▼
+Callback handleIntersect(index) được gọi
+│
+├──▶ cardRefs[prevIndex].pause()   ← Dừng video cũ
+│
+└──▶ cardRefs[index].play()        ← Phát video mới
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Chi tiết triển khai
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**1. Khởi tạo Observer với ngưỡng 70%**
+
+```typescript
+new IntersectionObserver(callback, { threshold: 0.7 })
+```
+
+Ngưỡng `0.7` được chọn có chủ đích: đủ lớn để tránh trigger sớm khi video
+chỉ vừa xuất hiện ở rìa màn hình, nhưng không quá cao để tránh trường hợp
+không bao giờ đạt ngưỡng trên thiết bị nhỏ.
+
+**2. Pattern `forwardRef` + `useImperativeHandle`**
+
+Mỗi `VideoCard` expose một API `{ play, pause }` ra ngoài thông qua
+`useImperativeHandle`. Điều này tách biệt hoàn toàn logic điều khiển
+(VideoFeed) khỏi implementation nội bộ (VideoCard) — đúng nguyên tắc
+**Separation of Concerns**.
+
+```typescript
+useImperativeHandle(ref, () => ({
+  play: () => videoRef.current?.play(),
+  pause: () => videoRef.current?.pause(),
+}));
+```
+
+**3. Tránh Stale Closure trong Callback**
+
+Callback của observer được khởi tạo một lần duy nhất (trong `useEffect`).
+Để tránh stale closure khi đọc `activeIndex`, `handleIntersect` sử dụng
+**functional update** của `setState`:
+
+```typescript
+setActiveIndex((prevIndex) => {
+  cardRefs.current[prevIndex]?.pause(); // ← luôn là giá trị mới nhất
+  cardRefs.current[index]?.play();
+  return index;
+});
+```
+
+Pattern này đảm bảo luôn đọc được `prevIndex` chính xác mà không cần
+đưa `activeIndex` vào dependency array — tránh việc observer bị recreate
+mỗi lần index thay đổi.
+
+**4. Ref Callback thay vì `useRef` + index trực tiếp**
+
+Thay vì `useRef<HTMLDivElement[]>([])`, dự án dùng **ref callback function**
+được truyền vào prop `ref` của từng wrapper div. Cách này đảm bảo
+observer luôn nhận đúng DOM element hiện tại kể cả khi component
+re-render hoặc list thay đổi thứ tự.
+
+### Kết quả
+
+| Tiêu chí | Giá trị |
+|---|---|
+| Trigger threshold | 70% viewport |
+| Blocking main thread | Không (async API) |
+| Số observer instance | 1 (dùng chung cho toàn bộ feed) |
+| Cleanup | `observer.disconnect()` khi unmount |
+
+---
+
+## Cấu trúc dự án
+
+```
+src/
+├── app/
+│   ├── globals.css       # Scroll Snap utilities, hide-scrollbar
+│   ├── layout.tsx        # Root layout + Navigation
+│   └── page.tsx          # Entry point
+├── components/
+│   ├── Navigation.tsx    # Responsive nav (Bottom / Sidebar)
+│   ├── VideoCard.tsx     # Player + UI overlay + Like logic
+│   └── VideoFeed.tsx     # Scroll container + Observer logic
+├── data/
+│   └── videos.ts         # Mock data (3 videos)
+├── hooks/
+│   └── useIntersectionObserver.ts
+└── types/
+    └── index.ts          # Video, VideoCardHandle interfaces
+```
+
+---
+
+## Các quyết định kỹ thuật nổi bật
+
+| Vấn đề | Giải pháp | Lý do |
+|---|---|---|
+| Parent điều khiển video | `forwardRef` + `useImperativeHandle` | Tách biệt logic, không expose DOM trực tiếp |
+| Tránh stale closure | Functional `setState(prev => ...)` | Observer callback không cần recreate |
+| Auto-play/pause | `IntersectionObserver` (threshold 0.7) | Non-blocking, hiệu suất cao hơn scroll event |
+| Responsive nav | Tailwind `md:hidden` / `hidden md:flex` | Zero JS, pure CSS breakpoint |
+| Ẩn scrollbar | Custom CSS utility `hide-scrollbar` | Giữ UX mượt mà trên mọi trình duyệt |
