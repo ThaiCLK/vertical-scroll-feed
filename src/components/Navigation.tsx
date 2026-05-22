@@ -13,10 +13,6 @@ const NAV_ITEMS = [
 export default function Navigation() {
   return (
     <>
-      {/* ─────────────────────────────────────────────
-          MOBILE — Bottom Navigation Bar
-          Ẩn ở ≥md, hiện ở <md
-      ───────────────────────────────────────────── */}
       <nav
         aria-label="Mobile navigation"
         className="md:hidden fixed bottom-0 inset-x-0 z-50
@@ -40,24 +36,18 @@ export default function Navigation() {
         </ul>
       </nav>
 
-      {/* ─────────────────────────────────────────────
-          PC — Left Sidebar
-          Ẩn ở <md, hiện ở ≥md
-      ───────────────────────────────────────────── */}
       <aside
         aria-label="Desktop navigation"
         className="hidden md:flex flex-col
                    fixed left-0 top-0 h-screen w-64 z-50
                    bg-black border-r border-white/10"
       >
-        {/* Logo */}
         <div className="px-6 py-6 border-b border-white/10 flex-shrink-0">
           <h1 className="text-2xl font-bold tracking-tight">
             Video<span className="text-red-500">Feed</span>
           </h1>
         </div>
 
-        {/* Nav Items */}
         <nav className="flex flex-col gap-1 px-3 pt-4 flex-1">
           {NAV_ITEMS.map(({ icon: Icon, label }, index) => (
             <button

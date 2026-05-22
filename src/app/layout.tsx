@@ -19,11 +19,6 @@ export default function RootLayout({
     <html lang="vi">
       <body className={`${inter.className} bg-black text-white`}>
         <Navigation />
-        {/*
-         * Mobile:  full-width, full-height
-         * PC:      đẩy nội dung sang phải 256px (w-64) để tránh Sidebar,
-         *          rồi dùng flex center để căn giữa container 9:16
-         */}
         <main className="h-screen w-full md:ml-64 flex items-center justify-center">
           {children}
         </main>

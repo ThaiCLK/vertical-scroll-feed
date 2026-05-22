@@ -9,7 +9,6 @@
   }
 }
 
-/* Utility để ẩn thanh cuộn nhưng vẫn có thể scroll */
 @layer utilities {
   .hide-scrollbar {
     scrollbar-width: none;

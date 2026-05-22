@@ -14,21 +14,16 @@ interface VideoCardProps {
   video: Video;
 }
 
-// ─────────────────────────────────────────────────────────────────
-// VideoCard
-// ─────────────────────────────────────────────────────────────────
 const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
   ({ video }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
 
-    // ── State ──────────────────────────────────────────────────
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(video.likes);
     const [isMuted, setIsMuted] = useState(true);
     const [isPaused, setIsPaused] = useState(true);
     const [showIcon, setShowIcon] = useState(false);
 
-    // ── Expose API cho parent qua ref ──────────────────────────
     useImperativeHandle(
       ref,
       () => ({
@@ -46,9 +41,6 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       []
     );
 
-    // ── Handlers ───────────────────────────────────────────────
-
-    /** Click vào video: toggle play/pause + hiện icon nhất thời */
     const handleVideoClick = useCallback(() => {
       const el = videoRef.current;
       if (!el) return;
@@ -61,19 +53,16 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
         setIsPaused(true);
       }
 
-      // Hiện icon play/pause trong 800ms rồi tắt
       setShowIcon(true);
       setTimeout(() => setShowIcon(false), 800);
     }, []);
 
-    /** Nút Tim: toggle like + tăng/giảm count */
     const handleLike = useCallback(() => {
       const nextLiked = !isLiked;
       setIsLiked(nextLiked);
       setLikeCount((count) => (nextLiked ? count + 1 : count - 1));
     }, [isLiked]);
 
-    /** Nút tắt/bật âm thanh — stopPropagation để không trigger click video */
     const handleMuteToggle = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -87,23 +76,19 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
 
     return (
       <div className="relative w-full h-full bg-black select-none overflow-hidden">
-
-        {/* ── VIDEO ──────────────────────────────────────────── */}
         <video
           ref={videoRef}
           src={video.url}
           className="w-full h-full object-cover cursor-pointer"
           loop
-          muted       // bắt buộc để autoplay hoạt động trên browser
-          playsInline // bắt buộc cho iOS
+          muted
+          playsInline
           preload="metadata"
           onClick={handleVideoClick}
-          // Sync state khi browser tự thay đổi (ví dụ: tab bị ẩn)
           onPlay={() => setIsPaused(false)}
           onPause={() => setIsPaused(true)}
         />
 
-        {/* ── PLAY / PAUSE ICON FEEDBACK ─────────────────────── */}
         <div
           className={`absolute inset-0 flex items-center justify-center
                       pointer-events-none transition-opacity duration-300
@@ -117,13 +102,11 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
           </div>
         </div>
 
-        {/* ── GRADIENT OVERLAY ───────────────────────────────── */}
         <div
           className="absolute inset-0 pointer-events-none
                      bg-gradient-to-t from-black/75 via-transparent to-black/20"
         />
 
-        {/* ── BOTTOM-LEFT: Tác giả & Mô tả ──────────────────── */}
         <div
           className="absolute bottom-20 left-4 right-20
                      pointer-events-none
@@ -137,12 +120,10 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
           </p>
         </div>
 
-        {/* ── RIGHT SIDE: Nút tương tác ──────────────────────── */}
         <div
           className="absolute right-3 bottom-24 flex flex-col items-center gap-5
                      md:bottom-16"
         >
-          {/* Tim (Bonus: đổi màu đỏ + tăng/giảm count) */}
           <ActionButton
             onClick={handleLike}
             aria-label={isLiked ? "Bỏ thích" : "Thích"}
@@ -159,18 +140,15 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
             />
           </ActionButton>
 
-          {/* Comment */}
           <ActionButton aria-label="Bình luận" count={formatCount(video.comments)}>
             <MessageCircle size={33} strokeWidth={1.75} className="text-white drop-shadow-lg" />
           </ActionButton>
 
-          {/* Share */}
           <ActionButton aria-label="Chia sẻ" count={formatCount(video.shares)}>
             <Share2 size={33} strokeWidth={1.75} className="text-white drop-shadow-lg" />
           </ActionButton>
         </div>
 
-        {/* ── TOP-RIGHT: Mute Toggle ─────────────────────────── */}
         <button
           onClick={handleMuteToggle}
           aria-label={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
@@ -190,10 +168,6 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
 
 VideoCard.displayName = "VideoCard";
 export default VideoCard;
-
-// ─────────────────────────────────────────────────────────────────
-// Helper Components & Utils (tách nhỏ để VideoCard gọn hơn)
-// ─────────────────────────────────────────────────────────────────
 
 interface ActionButtonProps {
   onClick?: () => void;
